@@ -539,6 +539,9 @@ var device = null;
                 device.detach().then(
                     async len => {
                         let detached = false;
+                        console.log("trying reset");
+                        await device.device_.reset();
+                        console.log("reset passed");
                         try {
                             await device.close();
                             await device.waitDisconnected(5000);

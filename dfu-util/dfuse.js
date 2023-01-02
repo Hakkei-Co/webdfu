@@ -65,6 +65,7 @@ var dfuse = {};
         return {"name": name, "segments": segments};
     };
 
+
     dfuse.Device.prototype.dfuseCommand = async function(command, param, len) {
         if (typeof param === 'undefined' && typeof len === 'undefined') {
             param = 0x00;

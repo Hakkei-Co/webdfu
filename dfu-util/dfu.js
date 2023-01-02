@@ -1,9 +1,8 @@
-var dfu = {}
+'use strict'
+let dfu = {}
 
-;(function () {
-  'use strict'
-
-  class WebDFUError extends Error {}
+class WebDFUError extends Error {}
+const fn = () => {
   dfu.DETACH = 0x00
   dfu.DNLOAD = 0x01
   dfu.UPLOAD = 0x02
@@ -614,22 +613,27 @@ var dfu = {}
 
     let result
     let bytes_to_read
-    do {
+
+    for (
+      let bytes_read = 0;
+      bytes_read < max_size &&
+      (result === undefined || result.byteLength === bytes_to_read);
+      bytes_read += result.byteLength
+    ) {
       bytes_to_read = Math.min(xfer_size, max_size - bytes_read)
       result = await this.upload(bytes_to_read, transaction++)
-      this.logDebug('Read ' + result.byteLength + ' bytes')
+      this.logDebug(`Read ${result.byteLength} bytes`)
       if (result.byteLength > 0) {
         blocks.push(result)
-        bytes_read += result.byteLength
       }
       if (Number.isFinite(max_size)) {
         this.logProgress(bytes_read, max_size)
       } else {
         this.logProgress(bytes_read)
       }
-    } while (bytes_read < max_size && result.byteLength == bytes_to_read)
+    }
 
-    if (bytes_read == max_size) {
+    if (bytes_read === max_size) {
       await this.abortToIdle()
     }
 
@@ -775,4 +779,5 @@ var dfu = {}
 
     return
   }
-})()
+}
+const dd = fn()

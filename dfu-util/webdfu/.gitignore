@@ -1,0 +1,12 @@
+# IDE
+**/.idea
+**/.vscode
+
+node_modules
+# Deps
+**/node_modules
+
+# Build
+**/dist
+**/.*-cache
+**/tsconfig.tsbuildinfo

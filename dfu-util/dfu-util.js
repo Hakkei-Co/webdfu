@@ -319,7 +319,12 @@ var device = null
 
     async function connect (device) {
       try {
-        await device.open()
+        const d = await device.open()
+        console.log(
+          '%c connect open ⏰ ',
+          'background:#6e6e6e; color: #cdfdce;, ⚛︎ connect ⚛︎ d',
+          d
+        )
       } catch (error) {
         onDisconnect(error)
         throw error
@@ -526,7 +531,7 @@ var device = null
       }
     })
 
-    connectButton.addEventListener('click', function () {
+    connectButton.addEventListener('click', async function () {
       if (device) {
         console.log(
           '%c NOTICE ⏰ ',
@@ -535,14 +540,14 @@ var device = null
         )
 
         device.close().then(onDisconnect)
-        device = null
+        // device = null
       } else {
         let filters = []
-        if (serial) {
-          filters.push({ serialNumber: serial })
-        } else if (vid) {
-          filters.push({ vendorId: vid })
-        }
+        // if (serial) {
+        //   filters.push({ serialNumber: serial })
+        // } else if (vid) {
+        //   filters.push({ vendorId: vid })
+        // }
         navigator.usb
           .requestDevice({ filters: [] })
           .then(async selectedDevice => {
@@ -569,7 +574,7 @@ var device = null
                 new dfu.Device(selectedDevice, interfaces[0])
               )
               console.log(
-                '%c device ⏰ ',
+                '%c device!! ⏰ ',
                 'background:#6e6e6e; color: #cdfdce;, ⚛︎ device',
                 device
               )
@@ -603,10 +608,63 @@ var device = null
           .catch(error => {
             statusDisplay.textContent = error
           })
+        // console.log(device)
+        // await device.device_.detach().then(
+        //   async len => {
+        //     console.log(
+        //       '%c NOTICE ⏰ ',
+        //       'background:#6e6e6e; color: #cdfdce;, ⚛︎ len',
+        //       len
+        //     )
+
+        //     let detached = false
+        //     console.log('trying reset')
+        //     await device.device_.reset()
+        //     console.log(
+        //       '%c detaching.. ⏰ ',
+        //       'background:#6e6e6e; color: #cdfdce;, ⚛︎ device',
+        //       device,
+        //       device.device_
+        //     )
+
+        //     console.log('reset passed')
+        //     try {
+        //       await device.close()
+        //       await device.waitDisconnected(5000)
+        //       detached = true
+        //       console.log(
+        //         '%c detached? ⏰ ',
+        //         'background:#6e6e6e; color: #cdfdce;, ⚛︎ detached',
+        //         detached
+        //       )
+        //     } catch (err) {
+        //       console.log('Detach failed: ' + err)
+        //     }
+
+        //     onDisconnect()
+        //     device = null
+        //     console.log(
+        //       '%c after onDisconnect() ⏰ ',
+        //       'background:#6e6e6e; color: #cdfdce;, ⚛︎ device',
+        //       device
+        //     )
+
+        //     if (detached) {
+        //       // Wait a few seconds and try reconnecting
+        //       setTimeout(autoConnect, 5000)
+        //     }
+        //   }
+        //   // async error => {
+        //   //   await device.close()
+        //   //   onDisconnect(error)
+        //   //   device = null
+        //   // }
+        // )
       }
     })
 
     detachButton.addEventListener('click', async function () {
+      console.log(device)
       if (device) {
         console.log(
           '%c NOTICE ⏰ ',
@@ -619,6 +677,13 @@ var device = null
             let detached = false
             console.log('trying reset')
             await device.device_.reset()
+            console.log(
+              '%c detaching.. ⏰ ',
+              'background:#6e6e6e; color: #cdfdce;, ⚛︎ device',
+              device,
+              device.device_
+            )
+
             console.log('reset passed')
             try {
               await device.close()

@@ -142,11 +142,6 @@ const fn = () => {
     const GET_DESCRIPTOR = 0x06
     const DT_DEVICE = 0x01
     const wValue = DT_DEVICE << 8
-    console.log(
-      '%c wValue ⏰ ',
-      'background:#6e6e6e; color: #cdfdce;, ⚛︎ fn ⚛︎ wValue',
-      wValue
-    )
 
     return this.device_
       .controlTransferIn(
@@ -463,27 +458,31 @@ const fn = () => {
     data,
     wValue = 0
   ) {
+    var data = new ArrayBuffer(0)
+
     console.log(
       '%c requestOut  ⏰ ',
       'background:#6e6e6e; color: #cdfdce;, ⚛︎ fn ⚛︎ this.device_',
       this.device_,
       wValue,
-      this.intfNumber
+      bRequest
     )
-    const result = await this.device_.controlTransferOut(
-      {
-        requestType: 'class',
-        recipient: 'interface',
-        request: bRequest,
-        value: wValue,
-        index: this.intfNumber
-      },
-      data
-    )
+    const result = await this.device_.open().then(device => {
+      return this.device_.controlTransferOut(
+        {
+          requestType: 'class',
+          recipient: 'device',
+          request: bRequest,
+          value: wValue,
+          index: this.intfNumber
+        },
+        data
+      )
+    })
 
     console.log('result', result)
     if (result.status == 'ok') {
-      return Promise.resolve(this.device_)
+      return Promise.resolve(result)
     } else {
       return Promise.reject(result.status)
     }

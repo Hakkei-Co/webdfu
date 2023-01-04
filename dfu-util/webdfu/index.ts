@@ -89,11 +89,6 @@ export class WebDFU {
     }
 
     const intrf = this.interfaces[interfaceIndex]
-    console.log(
-      '%c INTERFACE ⏰ ',
-      'background:#6e6e6e; color: #cdfdce;, ⚛︎ WebDFU ⚛︎ connect ⚛︎ this.interfaces',
-      this.interfaces
-    )
 
     if (!intrf) {
       throw new WebDFUError('Interface not found')
@@ -427,12 +422,10 @@ export class WebDFU {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   detach () {
     return this.requestOut(dfuCommands.DETACH, undefined, 1000)
   }
 
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   abort () {
     return this.requestOut(dfuCommands.ABORT)
   }
@@ -518,6 +511,8 @@ export class WebDFU {
   }
 
   private async requestOut (bRequest: number, data?: BufferSource, wValue = 0): Promise<number> {
+    console.log('%c wValue ⏰ ', 'background:#6e6e6e; color: #cdfdce;, ⚛︎ WebDFU ⚛︎ requestOut ⚛︎ wValue', wValue)
+
     try {
       const result = await this.device.controlTransferOut(
         {
@@ -647,7 +642,7 @@ export class WebDFU {
     let bytes_sent = 0
     const expected_size = data.byteLength
     let transaction = 0
-
+    console.log('emit write/start')
     process.events.emit('write/start')
 
     // Initialize progress to 0

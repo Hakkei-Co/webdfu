@@ -556,6 +556,9 @@ var device = null
               'background:#6e6e6e; color: #cdfdce;, ⚛︎ connectButton.addEventListener ⚛︎ selectedDevice',
               selectedDevice
             )
+            console.log('Product name: ' + selectedDevice.productName)
+            console.log('Product info: ', selectedDevice)
+            // usbDevice.open();
 
             let interfaces = dfu.findDeviceDfuInterfaces(selectedDevice)
             console.log(
@@ -566,6 +569,12 @@ var device = null
 
             if (interfaces.length == 0) {
               console.log(selectedDevice)
+              console.log(
+                '%c NOTICE ⏰ ',
+                'background:#6e6e6e; color: #cdfdce;, ⚛︎ selectedDevice',
+                selectedDevice
+              )
+
               statusDisplay.textContent =
                 'The selected device does not have any USB DFU interfaces.'
             } else if (interfaces.length == 1) {
@@ -663,7 +672,15 @@ var device = null
       }
     })
 
-    detachButton.addEventListener('click', async function () {
+    async function gracefullyResetDevice (device) {
+      try {
+        await device.reset()
+      } catch (err) {
+        console.warn(err)
+      }
+    }
+
+    detachButton.addEventListener('click', async () => {
       console.log(device)
       if (device) {
         console.log(
@@ -672,22 +689,37 @@ var device = null
           device
         )
 
+        // if (device) {
         await device.detach().then(
           async len => {
             let detached = false
-            console.log('trying reset')
-            await device.device_.reset()
+            console.log('trying reset', len)
+            await gracefullyResetDevice(len)
+            // const res = await len.reset().then(res => {
+            //   console.log(this, res)
+            //   return res
+            // })
+
             console.log(
               '%c detaching.. ⏰ ',
               'background:#6e6e6e; color: #cdfdce;, ⚛︎ device',
               device,
               device.device_
             )
-
             console.log('reset passed')
             try {
-              await device.close()
-              await device.waitDisconnected(5000)
+              await len.close()
+              await device.waitDisconnected(5000).then(
+                dev => {
+                  onDisconnect()
+                  device = null
+                },
+                error => {
+                  // It didn't reset and disconnect for some reason...
+                  console.log('Device unexpectedly tolerated manifestation.')
+                }
+              )
+
               detached = true
               console.log(
                 '%c detached? ⏰ ',
@@ -717,6 +749,7 @@ var device = null
             device = null
           }
         )
+        // }
       }
     })
 

@@ -244,7 +244,7 @@ export function parseConfigurationDescriptor (data: DataView) {
   const descriptorData = new DataView(data.buffer.slice(9))
   const descriptors = parseSubDescriptors(descriptorData)
   console.log(
-    '%c NOTICE ⏰ ',
+    '%c descriptors ⏰ ',
     'background:#6e6e6e; color: #cdfdce;, ⚛︎ parseConfigurationDescriptor ⚛︎ descriptors',
     descriptors
   )

@@ -142,6 +142,11 @@ const fn = () => {
     const GET_DESCRIPTOR = 0x06
     const DT_DEVICE = 0x01
     const wValue = DT_DEVICE << 8
+    console.log(
+      '%c wValue ⏰ ',
+      'background:#6e6e6e; color: #cdfdce;, ⚛︎ fn ⚛︎ wValue',
+      wValue
+    )
 
     return this.device_
       .controlTransferIn(
@@ -161,6 +166,17 @@ const fn = () => {
           return Promise.reject(result.status)
         }
       })
+  }
+
+  dfu.Device.prototype.detach = async function () {
+    const result = await this.requestOut(dfu.DETACH, undefined, 1000)
+    console.log(
+      '%c detach result ⏰ ',
+      'background:#6e6e6e; color: #cdfdce;, ⚛︎ result',
+      result
+    )
+
+    return result
   }
 
   dfu.Device.prototype.readStringDescriptor = async function (index, langID) {
@@ -409,375 +425,72 @@ const fn = () => {
       })
   }
 
-  dfu.Device.prototype.requestOut = function (bRequest, data, wValue = 0) {
-    console.log(
-      '%c NOTICE ⏰ ',
-      'background:#6e6e6e; color: #cdfdce;, ⚛︎ bRequest',
-      bRequest
-    )
-
-    console.log(
-      '%c request Out ⏰ ',
-      'background:#6e6e6e; color: #cdfdce; ⚛︎',
-      this.device_
-    )
-
-    try {
-      const result = this.device_
-        .controlTransferOut(
-          {
-            requestType: 'class',
-            recipient: 'interface',
-            request: bRequest,
-            value: wValue,
-            index: this.intfNumber
-          },
-          data
-        )
-        .then(result => console.log(result))
-
-      if (result.status === 'ok') {
-        return Promise.resolve(result.bytesWritten)
-        // throw new WebDFUError(result.status);
-      }
-      return Promise.reject(result.status)
-    } catch (error) {
-      throw new WebDFUError('ControlTransferOut failed: ' + error)
-    }
-  }
-  // dfu.Device.prototype.requestOut = function(bRequest, data, wValue=0) {
-  //     console.log('%c requestOut bRequest ⏰ ', 'background:#6e6e6e; color: #cdfdce;, ⚛︎ bRequest', bRequest);
-  //     console.log('%c requestOut data ⏰ ', 'background:#6e6e6e; color: #cdfdce;, ⚛︎ bRequest', bRequest);
-  //     console.log('%c requestOut wValue ⏰ ', 'background:#6e6e6e; color: #cdfdce;, ⚛︎ bRequest', bRequest);
-
-  //     return this.device_.controlTransferOut({
-  //         "requestType": "class",
-  //         "recipient": "interface",
-  //         "request": bRequest,
-  //         "value": wValue,
-  //         "index": this.intfNumber
-  //     }, data).then(
-  //         result => {
-  //             if (result.status == "ok") {
-  //                 return Promise.resolve(result.bytesWritten);
-  //             } else {
-  //                 return Promise.reject(result.status);
-  //             }
-  //         },
-  //         error => {
-  //             return Promise.reject("ControlTransferOut failed: " + error);
-  //         }
-  //     );
-  // };
-
-  dfu.Device.prototype.requestIn = function (bRequest, wLength, wValue = 0) {
-    return this.device_
-      .controlTransferIn(
-        {
-          requestType: 'class',
-          recipient: 'interface',
-          request: bRequest,
-          value: wValue,
-          index: this.intfNumber
-        },
-        wLength
-      )
-      .then(
-        result => {
-          if (result.status == 'ok') {
-            return Promise.resolve(result.data)
-          } else {
-            return Promise.reject(result.status)
-          }
-        },
-        error => {
-          return Promise.reject('ControlTransferIn failed: ' + error)
-        }
-      )
-  }
-
-  dfu.Device.prototype.detach = async function () {
-    console.log(
-      '%c detach called ⏰ ',
-      'background:#6e6e6e; color: #cdfdce;, ⚛︎ function',
-      'here'
-    )
-    try {
-      const res = await this.requestOut(dfu.DETACH, undefined, 1000)
-      console.log(
-        '%c requestOut result ⏰ ',
-        'background:#6e6e6e; color: #cdfdce;, ⚛︎ res',
-        res
-      )
-
-      return res
-    } catch (e) {
-      console.error('error on detach', e)
-    }
-  }
-
   dfu.Device.prototype.waitDisconnected = async function (timeout) {
-    let device = this
-    let usbDevice = this.device_
-    return new Promise(function (resolve, reject) {
+    const device = this
+    const usbDevice = this.device
+
+    return new Promise((resolve, reject) => {
       let timeoutID
-      if (timeout > 0) {
-        function onTimeout () {
-          navigator.usb.removeEventListener('disconnect', onDisconnect)
-          if (device.disconnected !== true) {
-            reject('Disconnect timeout expired')
-          }
-        }
-        timeoutID = setTimeout(reject, timeout)
-      }
 
       function onDisconnect (event) {
         if (event.device === usbDevice) {
           if (timeout > 0) {
             clearTimeout(timeoutID)
           }
-          device.disconnected = true
+          device.connected = false
           navigator.usb.removeEventListener('disconnect', onDisconnect)
           event.stopPropagation()
           resolve(device)
         }
       }
 
-      navigator.usb.addEventListener('disconnect', onDisconnect)
+      if (timeout > 0) {
+        timeoutID = window.setTimeout(() => {
+          navigator.usb.removeEventListener('disconnect', onDisconnect)
+
+          if (device.connected) {
+            reject('Disconnect timeout expired')
+          }
+        }, timeout)
+      } else {
+        navigator.usb.addEventListener('disconnect', onDisconnect)
+      }
     })
   }
 
-  dfu.Device.prototype.download = function (data, blockNum) {
-    return this.requestOut(dfu.DNLOAD, data, blockNum)
-  }
-
-  dfu.Device.prototype.dnload = dfu.Device.prototype.download
-
-  dfu.Device.prototype.upload = function (length, blockNum) {
-    return this.requestIn(dfu.UPLOAD, length, blockNum)
-  }
-
-  dfu.Device.prototype.clearStatus = function () {
-    return this.requestOut(dfu.CLRSTATUS)
-  }
-
-  dfu.Device.prototype.clrStatus = dfu.Device.prototype.clearStatus
-
-  dfu.Device.prototype.getStatus = function () {
-    return this.requestIn(dfu.GETSTATUS, 6).then(
-      data =>
-        Promise.resolve({
-          status: data.getUint8(0),
-          pollTimeout: data.getUint32(1, true) & 0xffffff,
-          state: data.getUint8(4)
-        }),
-      error => Promise.reject('DFU GETSTATUS failed: ' + error)
-    )
-  }
-
-  dfu.Device.prototype.getState = function () {
-    return this.requestIn(dfu.GETSTATE, 1).then(
-      data => Promise.resolve(data.getUint8(0)),
-      error => Promise.reject('DFU GETSTATE failed: ' + error)
-    )
-  }
-
-  dfu.Device.prototype.abort = function () {
-    return this.requestOut(dfu.ABORT)
-  }
-
-  dfu.Device.prototype.abortToIdle = async function () {
-    await this.abort()
-    let state = await this.getState()
-    if (state == dfu.dfuERROR) {
-      await this.clearStatus()
-      state = await this.getState()
-    }
-    if (state != dfu.dfuIDLE) {
-      throw 'Failed to return to idle state after abort: state ' + state.state
-    }
-  }
-
-  dfu.Device.prototype.do_upload = async function (
-    xfer_size,
-    max_size = Infinity,
-    first_block = 0
-  ) {
-    let transaction = first_block
-    let blocks = []
-    let bytes_read = 0
-
-    this.logInfo('Copying data from DFU device to browser')
-    // Initialize progress to 0
-    this.logProgress(0)
-
-    let result
-    let bytes_to_read
-
-    for (
-      let bytes_read = 0;
-      bytes_read < max_size &&
-      (result === undefined || result.byteLength === bytes_to_read);
-      bytes_read += result.byteLength
-    ) {
-      bytes_to_read = Math.min(xfer_size, max_size - bytes_read)
-      result = await this.upload(bytes_to_read, transaction++)
-      this.logDebug(`Read ${result.byteLength} bytes`)
-      if (result.byteLength > 0) {
-        blocks.push(result)
-      }
-      if (Number.isFinite(max_size)) {
-        this.logProgress(bytes_read, max_size)
-      } else {
-        this.logProgress(bytes_read)
-      }
-    }
-
-    if (bytes_read === max_size) {
-      await this.abortToIdle()
-    }
-
-    this.logInfo(`Read ${bytes_read} bytes`)
-
-    return new Blob(blocks, { type: 'application/octet-stream' })
-  }
-
-  dfu.Device.prototype.poll_until = async function (state_predicate) {
-    let dfu_status = await this.getStatus()
-
-    let device = this
-    function async_sleep (duration_ms) {
-      return new Promise(function (resolve, reject) {
-        device.logDebug('Sleeping for ' + duration_ms + 'ms')
-        setTimeout(resolve, duration_ms)
-      })
-    }
-
-    while (
-      !state_predicate(dfu_status.state) &&
-      dfu_status.state != dfu.dfuERROR
-    ) {
-      await async_sleep(dfu_status.pollTimeout)
-      dfu_status = await this.getStatus()
-    }
-
-    return dfu_status
-  }
-
-  dfu.Device.prototype.poll_until_idle = function (idle_state) {
-    return this.poll_until(state => state == idle_state)
-  }
-
-  dfu.Device.prototype.do_download = async function (
-    xfer_size,
+  dfu.Device.prototype.requestOut = async function (
+    bRequest,
     data,
-    manifestationTolerant
+    wValue = 0
   ) {
-    let bytes_sent = 0
-    let expected_size = data.byteLength
-    let transaction = 0
+    console.log(
+      '%c requestOut  ⏰ ',
+      'background:#6e6e6e; color: #cdfdce;, ⚛︎ fn ⚛︎ this.device_',
+      this.device_,
+      wValue,
+      this.intfNumber
+    )
+    const result = await this.device_.controlTransferOut(
+      {
+        requestType: 'class',
+        recipient: 'interface',
+        request: bRequest,
+        value: wValue,
+        index: this.intfNumber
+      },
+      data
+    )
 
-    this.logInfo('Copying data from browser to DFU device')
-
-    // Initialize progress to 0
-    this.logProgress(bytes_sent, expected_size)
-
-    while (bytes_sent < expected_size) {
-      const bytes_left = expected_size - bytes_sent
-      const chunk_size = Math.min(bytes_left, xfer_size)
-
-      let bytes_written = 0
-      let dfu_status
-      try {
-        bytes_written = await this.download(
-          data.slice(bytes_sent, bytes_sent + chunk_size),
-          transaction++
-        )
-        this.logDebug('Sent ' + bytes_written + ' bytes')
-        dfu_status = await this.poll_until_idle(dfu.dfuDNLOAD_IDLE)
-      } catch (error) {
-        throw 'Error during DFU download: ' + error
-      }
-
-      if (dfu_status.status != dfu.STATUS_OK) {
-        throw `DFU DOWNLOAD failed state=${dfu_status.state}, status=${dfu_status.status}`
-      }
-
-      this.logDebug('Wrote ' + bytes_written + ' bytes')
-      bytes_sent += bytes_written
-
-      this.logProgress(bytes_sent, expected_size)
-    }
-
-    this.logDebug('Sending empty block')
-    try {
-      await this.download(new ArrayBuffer([]), transaction++)
-    } catch (error) {
-      throw 'Error during final DFU download: ' + error
-    }
-
-    this.logInfo('Wrote ' + bytes_sent + ' bytes')
-    this.logInfo('Manifesting new firmware')
-
-    if (manifestationTolerant) {
-      // Transition to MANIFEST_SYNC state
-      let dfu_status
-      try {
-        // Wait until it returns to idle.
-        // If it's not really manifestation tolerant, it might transition to MANIFEST_WAIT_RESET
-        dfu_status = await this.poll_until(
-          state => state == dfu.dfuIDLE || state == dfu.dfuMANIFEST_WAIT_RESET
-        )
-        if (dfu_status.state == dfu.dfuMANIFEST_WAIT_RESET) {
-          this.logDebug(
-            'Device transitioned to MANIFEST_WAIT_RESET even though it is manifestation tolerant'
-          )
-        }
-        if (dfu_status.status != dfu.STATUS_OK) {
-          throw `DFU MANIFEST failed state=${dfu_status.state}, status=${dfu_status.status}`
-        }
-      } catch (error) {
-        if (
-          error.endsWith(
-            'ControlTransferIn failed: NotFoundError: Device unavailable.'
-          ) ||
-          error.endsWith(
-            'ControlTransferIn failed: NotFoundError: The device was disconnected.'
-          )
-        ) {
-          this.logWarning('Unable to poll final manifestation status')
-        } else {
-          throw 'Error during DFU manifest: ' + error
-        }
-      }
+    console.log('result', result)
+    if (result.status == 'ok') {
+      return Promise.resolve(this.device_)
     } else {
-      // Try polling once to initiate manifestation
-      try {
-        let final_status = await this.getStatus()
-        this.logDebug(
-          `Final DFU status: state=${final_status.state}, status=${final_status.status}`
-        )
-      } catch (error) {
-        this.logDebug('Manifest GET_STATUS poll error: ' + error)
-      }
+      return Promise.reject(result.status)
     }
 
-    // Reset to exit MANIFEST_WAIT_RESET
-    try {
-      await this.device_.reset()
-    } catch (error) {
-      if (
-        error == 'NetworkError: Unable to reset the device.' ||
-        error == 'NotFoundError: Device unavailable.' ||
-        error == 'NotFoundError: The device was disconnected.'
-      ) {
-        this.logDebug('Ignored reset error')
-      } else {
-        throw 'Error during reset for manifestation: ' + error
-      }
-    }
-
-    return
+    // error => {
+    //   return Promise.reject('ControlTransferOut failed: ' + error)
+    // }
   }
 }
 const dd = fn()

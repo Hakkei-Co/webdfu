@@ -63,6 +63,7 @@ let webdfu: WebDFU | null = null
 const connectButton = document.querySelector('#connect') as HTMLButtonElement
 const downloadButton = document.querySelector('#download') as HTMLButtonElement
 const uploadButton = document.querySelector('#upload') as HTMLButtonElement
+const detachButton = document.querySelector('#detach') as HTMLButtonElement
 const statusDisplay = document.querySelector('#status') as HTMLDivElement
 const infoDisplay = document.querySelector('#usbInfo') as HTMLDivElement
 const dfuDisplay = document.querySelector('#dfuInfo') as HTMLDivElement
@@ -109,7 +110,7 @@ async function connect (interfaceIndex: number) {
   if (!webdfu) {
     throw new Error()
   }
-  console.log('%c NOTICE ⏰ ', 'background:#6e6e6e; color: #cdfdce;, ⚛︎ connect ⚛︎ webdfu', webdfu)
+  console.log('%c connect with interfaceindex ⏰ ', 'background:#6e6e6e; color: #cdfdce;, ⚛︎ connect ⚛︎ webdfu', webdfu)
 
   await webdfu.connect(interfaceIndex)
 
@@ -197,7 +198,7 @@ async function connect (interfaceIndex: number) {
   // Update buttons based on capabilities
   if (webdfu.currentInterfaceSettings?.alternate.interfaceProtocol == 0x01) {
     console.log(
-      '%c NOTICE ⏰ ',
+      '%c currentInterface Settings ⏰ ',
       'background:#6e6e6e; color: #cdfdce;, ⚛︎ connect ⚛︎ webdfu.currentInterfaceSettings',
       webdfu.currentInterfaceSettings
     )
@@ -206,6 +207,7 @@ async function connect (interfaceIndex: number) {
     uploadButton.disabled = false
     downloadButton.disabled = false
     firmwareFileField.disabled = false
+    detachButton.disabled = false
   } else {
     // DFU
     uploadButton.disabled = false
@@ -222,6 +224,12 @@ async function connect (interfaceIndex: number) {
     if (segment) {
       webdfu.dfuseStartAddress = segment.start
       dfuseStartAddressField.value = '0x' + segment.start.toString(16)
+      console.log(
+        '%c dfuseStartAddress ⏰ ',
+        'background:#6e6e6e; color: #cdfdce;, ⚛︎ connect ⚛︎ dfuseStartAddressField.value',
+        dfuseStartAddressField.value
+      )
+
       const maxReadSize = webdfu.getDfuseMaxReadSize(segment.start)
       dfuseUploadSizeField.value = maxReadSize.toString()
       dfuseUploadSizeField.max = maxReadSize.toString()
@@ -258,8 +266,60 @@ dfuseStartAddressField.addEventListener('change', function (event) {
   }
 })
 
+detachButton.addEventListener('click', async function (event) {
+  event.preventDefault()
+  event.stopPropagation()
+
+  if (webdfu) {
+    console.log(
+      '%c detach webdfu null check ⏰ ',
+      'background:#6e6e6e; color: #cdfdce;, ⚛︎ detachButton.addEventListener ⚛︎ device',
+      webdfu
+    )
+    // await webdfu.device_.open()
+    // await device.detach().then(
+    //   async len => {
+    //     let detached = false
+    //     console.log('trying reset')
+    //     await device.device_.reset().then(res => {
+    //       console.log('reset result', res)
+    //       return res
+    //     })
+    //     console.log('%c detaching.. ⏰ ', 'background:#6e6e6e; color: #cdfdce;, ⚛︎ device', device, device.device_)
+
+    //     console.log('reset passed')
+    //     try {
+    //       await device.close()
+    //       await device.waitDisconnected(15000)
+    //       detached = true
+    //       console.log('%c detached? ⏰ ', 'background:#6e6e6e; color: #cdfdce;, ⚛︎ detached', detached)
+    //     } catch (err) {
+    //       console.log('Detach failed: ' + err)
+    //     }
+
+    //     onDisconnect()
+    //     device = null
+    //     console.log('%c after onDisconnect() ⏰ ', 'background:#6e6e6e; color: #cdfdce;, ⚛︎ device', device)
+
+    //     if (detached) {
+    //       // Wait a few seconds and try reconnecting
+    //       setTimeout(autoConnect, 5000)
+    //     }
+    //   },
+    //   async error => {
+    //     await device.close()
+    //     onDisconnect(error)
+    //     device = null
+    //   }
+    // )
+  }
+  return
+})
+
 connectButton.addEventListener('click', function () {
   if (webdfu) {
+    console.log('%c webdfu exists ⏰ ', 'background:#6e6e6e; color: #cdfdce;, ⚛︎ webdfu', webdfu)
+    console.log('closing...')
     webdfu.close().catch(console.error)
     webdfu = null
 
@@ -269,6 +329,7 @@ connectButton.addEventListener('click', function () {
   navigator.usb
     .requestDevice({ filters: [] })
     .then(async selectedDevice => {
+      console.log('requesting...', selectedDevice)
       webdfu = new WebDFU(
         selectedDevice,
         {
@@ -281,6 +342,9 @@ connectButton.addEventListener('click', function () {
         }
       )
       webdfu.events.on('disconnect', onDisconnect)
+      webdfu.events.on('connect', () => {
+        console.log('connect')
+      })
 
       await webdfu.init()
 
@@ -289,7 +353,7 @@ connectButton.addEventListener('click', function () {
         return
       }
 
-      await connect(0)
+      await connect(1)
     })
     .catch(error => {
       console.log(error)
@@ -373,11 +437,17 @@ async function download (): Promise<void> {
     configForm.reportValidity()
     return
   }
+  console.log(
+    '%c configForm? ⏰ ',
+    'background:#6e6e6e; color: #cdfdce;, ⚛︎ download ⚛︎ configForm.checkValidity()',
+    configForm.checkValidity()
+  )
 
   if (webdfu && firmwareFile != null) {
     setLogContext(downloadLog)
     clearLog(downloadLog)
 
+    console.log('%c webdfu ⏰ ', 'background:#6e6e6e; color: #cdfdce;, ⚛︎ download ⚛︎ webdfu', webdfu)
     try {
       if (await webdfu.isError()) {
         await webdfu.clearStatus()
@@ -385,7 +455,7 @@ async function download (): Promise<void> {
     } catch (error) {
       logWarning('Failed to clear status')
     }
-
+    console.log('starting write')
     const process = webdfu.write(transferSize, firmwareFile, manifestationTolerant)
 
     // Erase

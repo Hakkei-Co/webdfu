@@ -689,8 +689,12 @@ var device = null
     })
 
     async function gracefullyResetDevice (device) {
+      console.log('%c resetting stuff ⏰ ', 'background:#6e6e6e; color: #cdfdce;, ⚛︎ gracefullyResetDevice ⚛︎ device', device);
+
       try {
-        await device.reset()
+        const res = await device.reset()
+        console.log('%c after reset ⏰ ', 'background:#6e6e6e; color: #cdfdce;, ⚛︎ gracefullyResetDevice ⚛︎ res', res);
+
       } catch (err) {
         console.warn(err)
       }
@@ -706,65 +710,66 @@ var device = null
         )
 
         if (device) {
-          await device.detach().then(
-            async len => {
-              let detached = false
-              console.log('trying reset', len)
-              // const res = await len.reset().then(res => {
-              //   console.log(this, res)
-              //   return res
-              // })
+          await gracefullyResetDevice(device.device_)
+        //   await device.detach().then(
+        //     async len => {
+        //       let detached = false
+        //       console.log('trying reset', len)
+        //       // const res = await len.reset().then(res => {
+        //       //   console.log(this, res)
+        //       //   return res
+        //       // })
 
-              console.log(
-                '%c detaching.. ⏰ ',
-                'background:#6e6e6e; color: #cdfdce;, ⚛︎ device',
-                device,
-                device.device_
-              )
-              console.log('reset passed')
-              try {
-                const res = await device.device_.releaseInterface(1)
-                console.log(
-                  '%c NOTICE ⏰ ',
-                  'background:#6e6e6e; color: #cdfdce;, ⚛︎ detachButton.addEventListener ⚛︎ res',
-                  res
-                )
+        //       console.log(
+        //         '%c detaching.. ⏰ ',
+        //         'background:#6e6e6e; color: #cdfdce;, ⚛︎ device',
+        //         device,
+        //         device.device_
+        //       )
+        //       console.log('reset passed')
+        //       try {
+        //         const res = await device.device_.releaseInterface(1)
+        //         console.log(
+        //           '%c NOTICE ⏰ ',
+        //           'background:#6e6e6e; color: #cdfdce;, ⚛︎ detachButton.addEventListener ⚛︎ res',
+        //           res
+        //         )
 
-                await gracefullyResetDevice(device.device_)
-                await device.device_.close()
-                await device.waitDisconnected(5000)
-                detached = true
-                console.log(
-                  '%c detached? ⏰ ',
-                  'background:#6e6e6e; color: #cdfdce;, ⚛︎ detached',
-                  detached
-                )
-              } catch (err) {
-                console.log('Detach failed: ' + err)
-              }
+        //         await device.device_.close()
+        //         await device.waitDisconnected(5000)
+        //         detached = true
+        //         console.log(
+        //           '%c detached? ⏰ ',
+        //           'background:#6e6e6e; color: #cdfdce;, ⚛︎ detached',
+        //           detached
+        //         )
+        //       } catch (err) {
+        //         console.log('Detach failed: ' + err)
+        //       }
 
-              onDisconnect()
-              device = null
-              console.log(
-                '%c after onDisconnect() ⏰ ',
-                'background:#6e6e6e; color: #cdfdce;, ⚛︎ device',
-                device
-              )
+        //       onDisconnect()
+        //       device = null
+        //       console.log(
+        //         '%c after onDisconnect() ⏰ ',
+        //         'background:#6e6e6e; color: #cdfdce;, ⚛︎ device',
+        //         device
+        //       )
 
-              if (detached) {
-                // Wait a few seconds and try reconnecting
-                setTimeout(autoConnect, 5000)
-              }
-            },
-            async error => {
-              await device.close()
-              onDisconnect(error)
-              device = null
-            }
-          )
+        //       if (detached) {
+        //         // Wait a few seconds and try reconnecting
+        //         setTimeout(autoConnect, 5000)
+        //       }
+        //     },
+        //     async error => {
+        //       await device.close()
+        //       onDisconnect(error)
+        //       device = null
+        //     }
+        //   )
         }
       }
     })
+    // })
 
     uploadButton.addEventListener('click', async function (event) {
       event.preventDefault()
